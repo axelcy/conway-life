@@ -1,12 +1,13 @@
-import { draw, toggleCell } from './render'
+import { draw } from './render'
 import { tick } from './game'
 import { config } from '../config'
+import type { Camera } from './types'
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement
 const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
 
 // para manejar zoom y movimiento
-const camera = {
+const camera: Camera = {
     offsetX: 0, // delta x
     offsetY: 0, // delta y
     isDragging: false,
@@ -59,9 +60,25 @@ window.addEventListener('resize', () => {
 // zoom con la rueda del mouse
 canvas.addEventListener('wheel', (e: WheelEvent) => {
     e.preventDefault()
+
+    // obtener posición del mouse en el canvas
+    const rect = canvas.getBoundingClientRect()
+    // calculo las coordenadas del mouse en el canvas antes de hacer el zoom
+    const coordenadas: any = {}
+    coordenadas.mouseX = e.clientX - rect.left
+    coordenadas.mouseY = e.clientY - rect.top
+    coordenadas.mouseInCanvasX = (coordenadas.mouseX - camera.offsetX) / camera.scale
+    coordenadas.mouseInCanvasY = (coordenadas.mouseY - camera.offsetY) / camera.scale
+
+    // aplicar zoom
     if (e.deltaY < 0) camera.scale *= config.zoomFactor
     else camera.scale /= config.zoomFactor
+    // limitarlo min max
     camera.scale = Math.max(config.minScale, Math.min(config.maxScale, camera.scale))
+
+    camera.offsetX = coordenadas.mouseX - coordenadas.mouseInCanvasX * camera.scale
+    camera.offsetY = coordenadas.mouseY - coordenadas.mouseInCanvasY * camera.scale
+
     draw(state.alive, ctx, camera)
 }, { passive: false }) // { passive: false } para evitar el scroll de la página
 
@@ -82,6 +99,7 @@ canvas.addEventListener('mousedown', (e: MouseEvent) => {
         if (state.alive.has(getCell([x, y]))) isErasing = true
         isErasing ? state.alive.delete(getCell([x, y])) : state.alive.add(getCell([x, y]))
         draw(state.alive, ctx, camera)
+        switchHoverOnSocialMedia()
     }
 })
 window.addEventListener('mousemove', (e: MouseEvent) => {
@@ -101,6 +119,7 @@ window.addEventListener('mouseup', (e: MouseEvent) => {
     camera.isDragging = false
     isDrawing = false
     isErasing = false
+    switchHoverOnSocialMedia()
 })
 
 
@@ -127,4 +146,22 @@ document.getElementById('reset')?.addEventListener('click', () => {
     clearInterval(tickIntervalId)
     state.alive.clear()
     draw(state.alive, ctx, camera)
+})
+
+function switchHoverOnSocialMedia(): void {
+    const socialMediaContainer = document.getElementById('social-media')
+    if (socialMediaContainer) {
+        socialMediaContainer.style.pointerEvents = isDrawing ? 'none' : 'auto'
+    }
+}
+
+const discordCard = document.getElementById('discord-card') as HTMLDivElement
+const discordProfile = document.getElementById('discord-profile') as HTMLImageElement
+
+discordCard.addEventListener('mouseenter', () => {
+    discordProfile.style.display = 'block'
+})
+discordCard.addEventListener('mouseleave', () => {
+    discordProfile.style.display = 'none'
+
 })
