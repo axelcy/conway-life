@@ -143,6 +143,7 @@ playButton.addEventListener('click', () => {
 
 document.getElementById('reset')?.addEventListener('click', () => {
     isPlaying = false
+    playButton.innerHTML = 'Play'
     clearInterval(tickIntervalId)
     state.alive.clear()
     draw(state.alive, ctx, camera)
