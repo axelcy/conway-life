@@ -1,21 +1,19 @@
 import { draw, toggleCell } from './render'
 import { tick } from './game'
+import { config } from '../config'
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement
 const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
 
-// Objeto cámara para manejar el desplazamiento y zoom
+// para manejar zoom y movimiento
 const camera = {
     offsetX: 0, // delta x
     offsetY: 0, // delta y
-    isPanning: false, // el mouse está siendo presionado para arrastrar
-    startPanX: 0, // x inicial
-    startPanY: 0, // y inicial
-    scale: 100
+    isDragging: false,
+    startDragX: 0, // x inicial
+    startDragY: 0, // y inicial
+    scale: config.initialScale
 }
-
-let isPlaying: boolean = false
-let intervalId: number | undefined = undefined
 
 export const getCoords = (cell: string): [number, number] => cell.split(',').map(Number) as [number, number]
 export const getCell = ([x, y]: [number, number]): string => `${x},${y}`
@@ -31,55 +29,51 @@ canvas.height = window.innerHeight
 
 draw(state.alive, ctx, camera)
 
+
+
+// #================= events =================#
+
+let isPlaying: boolean = false
+let tickIntervalId: number | undefined = undefined
+
 window.addEventListener('resize', () => {
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
     draw(state.alive, ctx, camera)
-    console.log(state.alive)
 })
 
-// Manejar zoom con la rueda del mouse cambiando camera.scale
+// zoom con la rueda del mouse
 canvas.addEventListener('wheel', (e: WheelEvent) => {
     e.preventDefault()
-    const zoomFactor = 1.1
-    if (e.deltaY < 0) camera.scale *= zoomFactor
-    else camera.scale /= zoomFactor
-    camera.scale = Math.max(10, Math.min(500, camera.scale))
+    if (e.deltaY < 0) camera.scale *= config.zoomFactor
+    else camera.scale /= config.zoomFactor
+    camera.scale = Math.max(config.minScale, Math.min(config.maxScale, camera.scale))
     draw(state.alive, ctx, camera)
 }, { passive: false }) // { passive: false } para evitar el scroll de la página
 
-let panTimeout: number | undefined = undefined
-let wasPanning = false
-
+// comenzar desplazamiento con ruedita
 canvas.addEventListener('mousedown', (e: MouseEvent) => {
-    camera.isPanning = false
-    wasPanning = false
-    panTimeout = window.setTimeout(() => {
-        camera.isPanning = true
-        wasPanning = true
-    }, 120) // 120ms para distinguir click de arrastre
+    e.preventDefault()
+    if (e.button !== 1) return // empezar a arrastrar solo con la ruedita
+    camera.isDragging = true
     
-    camera.startPanX = e.clientX - camera.offsetX
-    camera.startPanY = e.clientY - camera.offsetY
+    camera.startDragX = e.clientX - camera.offsetX
+    camera.startDragY = e.clientY - camera.offsetY
 })
 window.addEventListener('mousemove', (e: MouseEvent) => {
-    if (!camera.isPanning) return
-    camera.offsetX = e.clientX - camera.startPanX
-    camera.offsetY = e.clientY - camera.startPanY
+    if (!camera.isDragging) return
+    camera.offsetX = e.clientX - camera.startDragX
+    camera.offsetY = e.clientY - camera.startDragY
     draw(state.alive, ctx, camera)
 })
-
 window.addEventListener('mouseup', () => {
-    if (panTimeout) {
-        clearTimeout(panTimeout)
-        panTimeout = undefined
-    }
-    camera.isPanning = false
+    camera.isDragging = false
 })
 
+// click para switchear celdas vivas y muertas
 canvas.addEventListener('click', (e: MouseEvent) => {
-    if (isPlaying || camera.isPanning || wasPanning) return
-    const rect = canvas.getBoundingClientRect()
+    if (isPlaying || camera.isDragging) return
+    const rect = canvas.getBoundingClientRect() // coordenadas del canvas
     const { offsetX, offsetY, scale } = camera
     const x = Math.floor((e.clientX - rect.left - offsetX) / scale)
     const y = Math.floor((e.clientY - rect.top - offsetY) / scale)
@@ -87,16 +81,20 @@ canvas.addEventListener('click', (e: MouseEvent) => {
     draw(state.alive, ctx, camera)
 })
 
+
+
+// #================= buttons =================#
+
 const playButton = document.getElementById('play') as HTMLButtonElement
 playButton.addEventListener('click', () => {
     isPlaying = !isPlaying
     playButton.innerHTML = isPlaying ? 'Pause' : 'Play'
-    if (!isPlaying && intervalId) {
-        clearInterval(intervalId)
-        intervalId = undefined
+    if (!isPlaying && tickIntervalId) {
+        clearInterval(tickIntervalId)
+        tickIntervalId = undefined
         return
     }
-    intervalId = setInterval(() => {
+    tickIntervalId = setInterval(() => {
         state.alive = tick(state.alive)
         draw(state.alive, ctx, camera)
     }, 500)
@@ -104,7 +102,7 @@ playButton.addEventListener('click', () => {
 
 document.getElementById('reset')?.addEventListener('click', () => {
     isPlaying = false
-    clearInterval(intervalId)
+    clearInterval(tickIntervalId)
     state.alive.clear()
     draw(state.alive, ctx, camera)
 })
