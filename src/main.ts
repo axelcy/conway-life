@@ -31,9 +31,23 @@ draw(state.alive, ctx, camera)
 
 
 
+// #================= functions =================# 
+
+function getXYfromEvent(e: MouseEvent): { x: number, y: number } {
+    const rect = canvas.getBoundingClientRect() // coordenadas del canvas
+    const { offsetX, offsetY, scale } = camera
+    const x = Math.floor((e.clientX - rect.left - offsetX) / scale)
+    const y = Math.floor((e.clientY - rect.top - offsetY) / scale)
+    return { x, y }
+}
+
+
+
 // #================= events =================#
 
 let isPlaying: boolean = false
+let isDrawing: boolean = false
+let isErasing: boolean = false
 let tickIntervalId: number | undefined = undefined
 
 window.addEventListener('resize', () => {
@@ -54,31 +68,39 @@ canvas.addEventListener('wheel', (e: WheelEvent) => {
 // comenzar desplazamiento con ruedita
 canvas.addEventListener('mousedown', (e: MouseEvent) => {
     e.preventDefault()
-    if (e.button !== 1) return // empezar a arrastrar solo con la ruedita
-    camera.isDragging = true
-    
-    camera.startDragX = e.clientX - camera.offsetX
-    camera.startDragY = e.clientY - camera.offsetY
+    // ruedita
+    if (e.button === 1) {
+        camera.isDragging = true
+        camera.startDragX = e.clientX - camera.offsetX
+        camera.startDragY = e.clientY - camera.offsetY
+    }
+
+    // click izq
+    else if (!isPlaying && e.button === 0) {
+        isDrawing = true
+        const { x, y } = getXYfromEvent(e)
+        if (state.alive.has(getCell([x, y]))) isErasing = true
+        isErasing ? state.alive.delete(getCell([x, y])) : state.alive.add(getCell([x, y]))
+        draw(state.alive, ctx, camera)
+    }
 })
 window.addEventListener('mousemove', (e: MouseEvent) => {
-    if (!camera.isDragging) return
-    camera.offsetX = e.clientX - camera.startDragX
-    camera.offsetY = e.clientY - camera.startDragY
-    draw(state.alive, ctx, camera)
+    if (isDrawing && !isPlaying) {
+        const { x, y } = getXYfromEvent(e)
+        // state.alive.add(getCell([x, y]))
+        isErasing ? state.alive.delete(getCell([x, y])) : state.alive.add(getCell([x, y]))
+        draw(state.alive, ctx, camera)
+    }
+    else if (camera.isDragging) {
+        camera.offsetX = e.clientX - camera.startDragX
+        camera.offsetY = e.clientY - camera.startDragY
+        draw(state.alive, ctx, camera)
+    }
 })
-window.addEventListener('mouseup', () => {
+window.addEventListener('mouseup', (e: MouseEvent) => {
     camera.isDragging = false
-})
-
-// click para switchear celdas vivas y muertas
-canvas.addEventListener('click', (e: MouseEvent) => {
-    if (isPlaying || camera.isDragging) return
-    const rect = canvas.getBoundingClientRect() // coordenadas del canvas
-    const { offsetX, offsetY, scale } = camera
-    const x = Math.floor((e.clientX - rect.left - offsetX) / scale)
-    const y = Math.floor((e.clientY - rect.top - offsetY) / scale)
-    state.alive = toggleCell(x, y, state.alive)
-    draw(state.alive, ctx, camera)
+    isDrawing = false
+    isErasing = false
 })
 
 
