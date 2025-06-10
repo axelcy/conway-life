@@ -16,7 +16,8 @@ export function exportCanvasToGif(canvas: HTMLCanvasElement, drawFrame: () => vo
         quality: 10, // calidad del numero 1 al 100
         width: canvas.width,
         height: canvas.height,
-        workerScript: 'node_modules/gif.js.optimized/dist/gif.worker.js',
+        // workerScript: 'node_modules/gif.js.optimized/dist/gif.worker.js',
+        workerScript: '/gif.worker.js',
     })
     gif.on('finished', (blob: Blob) => {
         const url = URL.createObjectURL(blob)
