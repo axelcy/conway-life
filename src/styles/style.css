@@ -1,3 +1,11 @@
+/* @import url('https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap'); */
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&display=swap');
+* {
+  font-family: "Nunito Sans";
+  /* font-family: 'Roboto', Arial, sans-serif; */
+  font-size: 20px;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -38,7 +46,7 @@ body {
   cursor: pointer;
   border: 1px solid var(--bg);
   border-radius: 4px;
-  padding: 0.8em 2em;
+  padding: 0.7em 1.8em;
   background: var(--bg);
   transition: 0.2s;
 }
@@ -53,4 +61,10 @@ body {
 .control-btn:active {
   transform: translate(0);
   box-shadow: none;
+}
+
+.export-btn-loading{
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

@@ -2,9 +2,10 @@ import { draw } from './render'
 import { tick } from './game'
 import { config } from '../config'
 import type { Camera } from './types'
+import { exportCanvasToGif } from './export'
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement
-const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D
 
 // para manejar zoom y movimiento
 const camera: Camera = {
@@ -29,8 +30,6 @@ canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 
 draw(state.alive, ctx, camera)
-
-
 
 // #================= functions =================# 
 
@@ -141,7 +140,8 @@ playButton.addEventListener('click', () => {
     }, 500)
 })
 
-document.getElementById('reset')?.addEventListener('click', () => {
+const resetButton = document.getElementById('reset') as HTMLButtonElement
+resetButton.addEventListener('click', () => {
     isPlaying = false
     playButton.innerHTML = 'Play'
     clearInterval(tickIntervalId)
@@ -164,5 +164,11 @@ discordCard.addEventListener('mouseenter', () => {
 })
 discordCard.addEventListener('mouseleave', () => {
     discordProfile.style.display = 'none'
+})
 
+document.getElementById('export')?.addEventListener('click', () => {
+  exportCanvasToGif(canvas, () => {
+    state.alive = tick(state.alive)
+    draw(state.alive, ctx, camera)
+  })
 })

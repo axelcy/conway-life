@@ -3,4 +3,5 @@ export const config = {
     minScale: 3, // escala mínima
     maxScale: 500, // escala máxima
     initialScale: 50, // escala inicial del canvas
+    maxExportFrames: 100, // máximo de frames al exportar como gif
 }
